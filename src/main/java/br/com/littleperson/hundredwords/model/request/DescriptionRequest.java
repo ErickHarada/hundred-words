@@ -21,6 +21,9 @@ public class DescriptionRequest {
     private Long id;
     @Column(name = "meaning")
     private String meaning;
-    @Column(name = "fk_word_id_word")
-    private Long wordId;
+//  @Column(name = "fk_word_id_word")
+//  private Long wordId;
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE})
+    @JoinColumn(name = "fk_word_id_word")
+    private WordRequest wordId;
 }

@@ -21,7 +21,7 @@ public class WordRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_word")
     private Long id;
-    @Column(name = "name_word")
+    @Column(name = "name_word", nullable = false, unique = true)
     private String name;
 
 }

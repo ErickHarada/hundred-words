@@ -6,19 +6,16 @@ import br.com.littleperson.hundredwords.model.Word;
 import br.com.littleperson.hundredwords.model.request.DescriptionRequest;
 import br.com.littleperson.hundredwords.model.request.WordRequest;
 import br.com.littleperson.hundredwords.repository.DescriptionRepository;
-import br.com.littleperson.hundredwords.repository.WordRepository;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -29,11 +26,6 @@ import java.util.stream.Collectors;
 @Service
 public class WordBusinessImpl implements WordBusiness {
 
-    /**
-     * The Word repository.
-     */
-    @Autowired
-    WordRepository wordRepository;
     /**
      * The Description repository.
      */
@@ -63,14 +55,17 @@ public class WordBusinessImpl implements WordBusiness {
 
         List<Word> words = new ArrayList<>();
 
-        List<DescriptionRequest> descriptionRequests = descriptionRepository.findAllByWordIdIn(idsList);
+        List<DescriptionRequest> descriptionRequests = descriptionRepository.findAllByWordId_IdIn(idsList);
 
-        wordRepository.findAllById(idsList).forEach(w -> {
+        List<WordRequest> listWord = descriptionRequests.stream().map(DescriptionRequest::getWordId)
+                .distinct().collect(Collectors.toList());
+
+        listWord.forEach(w -> {
             Word word = new Word();
             word.setId(w.getId());
             word.setName(w.getName());
             word.setDescription(descriptionRequests.stream()
-                    .filter(d -> d.getWordId().equals(w.getId()))
+                    .filter(d -> d.getWordId().getId().equals(w.getId()))
                     .map(DescriptionRequest::getMeaning)
                     .collect(Collectors.toList()));
             words.add(word);
@@ -83,34 +78,31 @@ public class WordBusinessImpl implements WordBusiness {
     @Override
     public void wordSave(Word word) {
 
-        WordRequest wordRequest = new WordRequest();
-        wordRequest.setName(word.getName());
-        Long lastId = wordRepository.save(wordRequest).getId();
+        WordRequest wordRequest = WordRequest.builder()
+                .name(word.getName())
+                .build();
 
         word.getDescription().forEach(d -> {
-            DescriptionRequest descriptionRequest = new DescriptionRequest();
-            descriptionRequest.setMeaning(d);
-            descriptionRequest.setWordId(lastId);
+            DescriptionRequest descriptionRequest = DescriptionRequest.builder()
+                    .meaning(d)
+                    .wordId(wordRequest)
+                    .build();
             descriptionRepository.save(descriptionRequest);
         });
-
     }
 
     @SneakyThrows
     @Override
     public Word getWord(String name) {
+        List<DescriptionRequest> descriptionRequests = descriptionRepository.findAllByWordId_Name(name);
 
-        WordRequest wordRequest = wordRepository.findByName(name);
-
-        if(wordRequest == null){
+        if (descriptionRequests.size() == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
 
-        List<DescriptionRequest> descriptionRequests = descriptionRepository.findAllById(wordRequest.getId());
-
         Word word = new Word();
-        word.setId(wordRequest.getId());
-        word.setName(wordRequest.getName());
+        word.setId(descriptionRequests.get(0).getWordId().getId());
+        word.setName(descriptionRequests.get(0).getWordId().getName());
         word.setDescription(descriptionRequests.stream().map(d -> d.getMeaning()).collect(Collectors.toList()));
 
         return word;

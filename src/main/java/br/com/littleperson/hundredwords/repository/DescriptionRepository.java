@@ -9,7 +9,8 @@ import java.util.List;
 @Repository
 public interface DescriptionRepository extends JpaRepository<DescriptionRequest, Long> {
 
-    List<DescriptionRequest> findAllByWordIdIn(List<Long> fkId);
+    List<DescriptionRequest> findAllByWordId_IdIn(List<Long> fkId);
 
-    List<DescriptionRequest> findAllById(Long id);
+    List<DescriptionRequest> findAllByWordId_Name(String name);
+
 }
